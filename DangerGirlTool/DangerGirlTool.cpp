@@ -54,7 +54,7 @@ int main(int argc, char** argv) {
 void Titulo(void) {
 	printf(
 		"\n"
-		"DUMP - Copyright (C) 2022 Kuroi/Luke\n"
+		"DUMP - Copyright (C) 2024 Luke\n"
 		"Script dumper para 'Danger Girl - PSX' (USA)\n"
 		"\n"
 	);
@@ -127,17 +127,31 @@ void Dumper(char* nome) {
 	long tamanho, entries, table;
 	short tamanho_corrigido;
 	unsigned int offset_ini, i, end_ponteiro;
+	unsigned int magic_number;
 
 	arquivo = fopen(nome, "rb");
 
 	fseek(arquivo, 0, SEEK_END);
 	tamanho = ftell(arquivo);
 
-	fseek(arquivo, SEEK_SET + 0x20, SEEK_SET);
-	fread(&entries, sizeof(long), 1, arquivo);
+	fseek(arquivo, SEEK_SET + 0x08, SEEK_SET);
+	fread(&magic_number, sizeof(unsigned int), 1, arquivo);
 
-	fseek(arquivo, SEEK_SET + 0x24, SEEK_SET);
-	fread(&table, sizeof(long), 1, arquivo);
+	if (magic_number == 0x4556454c) {
+		fseek(arquivo, SEEK_SET + 0x20, SEEK_SET);
+		fread(&entries, sizeof(long), 1, arquivo);
+
+		fseek(arquivo, SEEK_SET + 0x24, SEEK_SET);
+		fread(&table, sizeof(long), 1, arquivo);
+	}
+	else {
+		fseek(arquivo, SEEK_SET + 0x04, SEEK_SET);
+		fread(&entries, sizeof(long), 1, arquivo);
+		
+		fseek(arquivo, SEEK_SET + 0x08, SEEK_SET);
+		fread(&table, sizeof(long), 1, arquivo);
+	
+	}
 
 	fseek(arquivo, -2, SEEK_END);
 	fread(&tamanho_corrigido, sizeof(short), 2, arquivo);
@@ -245,6 +259,7 @@ void Inserter(char* nome_trad) {
 	unsigned int ponteiro_mod, ponteiro_ant;
 	unsigned int ponteiro_orig;
 	int i;
+	unsigned int magic_number;
 	char caminho_orig[50] = "scripts_originais\\";
 	char caminho_trad[50] = "scripts_traduzidos\\";
 
@@ -269,8 +284,18 @@ void Inserter(char* nome_trad) {
 	fseek(out, 0, SEEK_END);
 	tamanho = ftell(out);
 
-	fseek(out, SEEK_SET + 0x24, SEEK_SET);
-	fread(&table, sizeof(long), 1, out);
+	fseek(out, SEEK_SET + 0x08, SEEK_SET);
+	fread(&magic_number, sizeof(unsigned int), 1, out);
+
+	if (magic_number == 0x4556454C) {
+		fseek(out, SEEK_SET + 0x24, SEEK_SET);
+		fread(&table, sizeof(long), 1, out);
+		
+	}
+	else {
+		fseek(out, SEEK_SET + 0x08, SEEK_SET);
+		fread(&table, sizeof(long), 1, out);
+	}
 
 	fseek(out, -2, SEEK_END);
 	fread(&tamanho_corrigido, sizeof(short), 2, out);
@@ -282,7 +307,7 @@ void Inserter(char* nome_trad) {
 		Offset_ini = tamanho - table;
 	}
 
-	fseek(out, SEEK_SET + Offset_ini, SEEK_SET);
+	fseek(out, Offset_ini, SEEK_SET);
 	printf("\nInserindo...\n");
 
 	while (fgets(s, 100, arq) != NULL) {
@@ -314,7 +339,13 @@ void Inserter(char* nome_trad) {
 	fclose(arq);
 	fclose(out);
 
-	calcula_ponteiro(nome_trad, Offset_ini, Offset_fim, 0x2C);
+	// Escolher o valor apropriado para o terceiro argumento de calcula_ponteiro
+	if (magic_number == 0x4556454C) {
+		calcula_ponteiro(nome_trad, Offset_ini, Offset_fim, 0x2C);
+	}
+	else {
+		calcula_ponteiro(nome_trad, Offset_ini, Offset_fim, 0x10);
+	}
 
 	printf("Script Inserido com sucesso!\nPressione qualquer tecla para continuar.");
 	_getch();
@@ -346,6 +377,30 @@ void calcula_ponteiro(char* nome, unsigned int Offset_ini, unsigned int Offset_f
 	for (i = Offset_ini; k < Offset_ini; i++) {
 
 		if (k == 0x2C) {
+			soma = 0;
+			cont_letras = cont_letras = contador(nome, i, Offset_fim);
+			cont_letras = cont_letras + 1;
+
+			fseek(arquivo_mod, SEEK_SET + k, SEEK_SET);
+
+			calculo_ponteiro1 = soma;
+			calculo_ponteiro2 = cont_letras;
+
+			PonteiroByte1 = (unsigned char)(calculo_ponteiro1 & 0x000000FF);
+			PonteiroByte2 = (unsigned char)((calculo_ponteiro1 >> 8) & 0x000000FF);
+
+			PonteiroByte3 = (unsigned char)(calculo_ponteiro2 & 0x000000FF);
+			PonteiroByte4 = (unsigned char)((calculo_ponteiro2 >> 8) & 0x000000FF);
+
+			fwrite(&PonteiroByte1, sizeof(unsigned char), 1, arquivo_mod);
+			fwrite(&PonteiroByte2, sizeof(unsigned char), 1, arquivo_mod);
+
+			fwrite(&PonteiroByte3, sizeof(unsigned char), 1, arquivo_mod);
+			fwrite(&PonteiroByte4, sizeof(unsigned char), 1, arquivo_mod);
+
+			k = k + 8;
+		}
+		if (k == 0x10) {
 			soma = 0;
 			cont_letras = cont_letras = contador(nome, i, Offset_fim);
 			cont_letras = cont_letras + 1;
