@@ -54,7 +54,7 @@ int main(int argc, char** argv) {
 void Titulo(void) {
 	printf(
 		"\n"
-		"DUMP - Copyright (C) 2022 Kuroi\n"
+		"DUMP - Copyright (C) 2022 Kuroi/Luke\n"
 		"Script dumper para 'Danger Girl - PSX' (USA)\n"
 		"\n"
 	);
