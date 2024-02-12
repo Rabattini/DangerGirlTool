@@ -33,7 +33,9 @@ int main(int argc, char** argv) {
 
 	int opc;
 
-	setlocale(LC_ALL, "Portuguese");
+	//setlocale(LC_ALL, "Portuguese");
+	UINT CPAGE_UTF8 = 65001;
+	SetConsoleOutputCP(CPAGE_UTF8);
 	_mkdir("scripts_originais");
 	_mkdir("scripts_traduzidos");
 
